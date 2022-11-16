@@ -1,6 +1,37 @@
 import './App.css';
+import React, {useEffect, useState} from 'react'
+import { ethers } from 'ethers'
+import Betting from './artifacts/contracts/Betting.sol/Betting.json'
+
+const BETTING_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 
 function App() {
+
+  const [totalPeople, setTotalOfPeople] = useState(0)
+  const [currentPeople, setCurrentPeople] = useState(0)
+
+  async function fetchBetting() {
+    if (typeof window.ethereum !== "undefined") {
+      //ethereum is usable get reference to the contract
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, provider);
+
+      //try to get the greeting in the contract
+      try {
+          const status = await contract.getStatus();
+          console.log(status)
+      } catch (e) {
+          console.log("Err: ", e)
+      }
+    } else {
+      console.log('undefine')
+    }
+  }
+
+  useEffect(() =>  {
+    fetchBetting();
+  }, [])
+
   return (
     <div className="App">
       <div className="flex-box-column-start">
@@ -42,7 +73,7 @@ function App() {
 
         <div style={{ padding: 8 }}></div>
 
-        <div className="text-style" style={{ fontSize: 30, margin: 'auto' }}>Status: 2 of 2</div>
+        <div className="text-style" style={{ fontSize: 30, margin: 'auto' }}>Status: 2 of {totalPeople}</div>
       </div>
     </div>
   );
