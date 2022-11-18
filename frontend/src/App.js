@@ -1,16 +1,19 @@
 import './App.css';
-import React, {useEffect, useState} from 'react'
+import React, { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import Betting from './artifacts/contracts/Betting.sol/Betting.json'
+import { useParams } from 'react-router-dom';
 
-const BETTING_ADDRESS = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6";
-const ethPrivkey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const BETTING_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 function App() {
+  const param = useParams();
+  const ethPrivkey = param.idWallet;
 
-  const [totalPeople, setTotalOfPeople] = useState(0);
-  const [currentPeople, setCurrentPeople] = useState(0);
   const [contractBetting, setContractBetting] = useState();
+  const [infoPlayer, setInfoPlayer] = useState({ player: 0, maxPlayer: 0, numberWin: 0 });
+
+  const [value, setValue] = useState({ betNumber: '', amount: '' })
 
   async function fetchBetting() {
     if (typeof window.ethereum !== "undefined") {
@@ -19,11 +22,13 @@ function App() {
       const wallet = new ethers.Wallet(ethPrivkey, provider);
       const signer = wallet.provider.getSigner(wallet.address);
       const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signer);
-      contract.on("Status", (to, amount, from) => {
-          console.log("Status", Number(to), Number(amount));
+      contract.on("Status", (to, amount) => {
+        console.log("Status", Number(to), Number(amount));
+        setInfoPlayer({ player: Number(to), maxPlayer: Number(amount) })
       });
       contract.on("WinningNumber", (amount) => {
-          console.log("WinningNumber", Number(amount));
+        console.log("WinningNumber", Number(amount));
+        setInfoPlayer({ ...infoPlayer, numberWin: Number(amount) });
       });
       const status = await contract.functions.getStatus();
       console.log(status);
@@ -31,9 +36,9 @@ function App() {
     } else {
       console.log('window.ethereum is undefined');
     }
-  }
+  };
 
-  useEffect(() =>  {
+  useEffect(() => {
     fetchBetting();
   }, []);
 
@@ -41,10 +46,22 @@ function App() {
     //try to get the greeting in the contract
     try {
       const bet = await contractBetting.functions.bet(1);
+      setValue({ betNumber: '', amount: '' })
       // console.log(contractBetting, bet);
     } catch (e) {
-        console.log("Err: ", e)
+      console.log("Err: ", e)
     }
+  }
+
+  const handleConnectMetaMask = async () => {
+    const acounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    console.log('acounts', acounts);
+  };
+
+  const changeValue = (data) => {
+    setValue({ ...value, ...data });
   }
 
   return (
@@ -55,11 +72,17 @@ function App() {
         <div style={{ padding: 10 }}></div>
 
         <div className="flex-box-column-center">
+          <button className="bet-button" onClick={handleConnectMetaMask}>Connect Metamask</button>
+        </div>
+
+        <div style={{ padding: 10 }}></div>
+
+        <div className="flex-box-column-center">
           <div className="text-style" style={{ fontSize: 20 }}>
             Number to wager
           </div>
           <div style={{ padding: 5 }}></div>
-          <input className="input" />
+          <input className="input" onChange={(e) => changeValue({ betNumber: e })} />
         </div>
 
         <div style={{ padding: 10 }}></div>
@@ -69,7 +92,7 @@ function App() {
             Number of ethers to wagers
           </div>
           <div style={{ padding: 5 }}></div>
-          <input className="input" />
+          <input className="input" onChange={(e) => changeValue({ amount: e })} />
         </div>
 
         <div style={{ padding: 20 }}></div>
@@ -88,7 +111,7 @@ function App() {
 
         <div style={{ padding: 8 }}></div>
 
-        <div className="text-style" style={{ fontSize: 30, margin: 'auto' }}>Status: 2 of {totalPeople}</div>
+        <div className="text-style" style={{ fontSize: 30, margin: 'auto' }}>Status: {infoPlayer.player} of {infoPlayer.maxPlayer}</div>
       </div>
     </div>
   );
