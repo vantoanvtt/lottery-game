@@ -3,32 +3,31 @@ import React, {useEffect, useState} from 'react'
 import { ethers } from 'ethers'
 import Betting from './artifacts/contracts/Betting.sol/Betting.json'
 
-const BETTING_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const ethPrivkey = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const BETTING_ADDRESS = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6";
+const ethPrivkey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 function App() {
 
-  const [totalPeople, setTotalOfPeople] = useState(0)
-  const [currentPeople, setCurrentPeople] = useState(0)
+  const [totalPeople, setTotalOfPeople] = useState(0);
+  const [currentPeople, setCurrentPeople] = useState(0);
+  const [contractBetting, setContractBetting] = useState();
 
   async function fetchBetting() {
     if (typeof window.ethereum !== "undefined") {
       //ethereum is usable get reference to the contract
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const balance = await provider.getBalance("ethers.eth");
-      console.log("balance", ethers.utils.formatEther(balance));
       const wallet = new ethers.Wallet(ethPrivkey, provider);
-      console.log(wallet);
       const signer = wallet.provider.getSigner(wallet.address);
       const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signer);
-
-      //try to get the greeting in the contract
-      try {
-          const bet = await contract.bet(10);
-          console.log(bet);
-      } catch (e) {
-          console.log("Err: ", e)
-      }
+      contract.on("Status", (to, amount, from) => {
+          console.log("Status", Number(to), Number(amount));
+      });
+      contract.on("WinningNumber", (amount) => {
+          console.log("WinningNumber", Number(amount));
+      });
+      const status = await contract.functions.getStatus();
+      console.log(status);
+      setContractBetting(contract);
     } else {
       console.log('window.ethereum is undefined');
     }
@@ -36,7 +35,17 @@ function App() {
 
   useEffect(() =>  {
     fetchBetting();
-  }, [])
+  }, []);
+
+  const handleBet = async () => {
+    //try to get the greeting in the contract
+    try {
+      const bet = await contractBetting.functions.bet(1);
+      // console.log(contractBetting, bet);
+    } catch (e) {
+        console.log("Err: ", e)
+    }
+  }
 
   return (
     <div className="App">
@@ -65,7 +74,7 @@ function App() {
 
         <div style={{ padding: 20 }}></div>
 
-        <button className="bet-button">Bet</button>
+        <button className="bet-button" onClick={handleBet}>Bet</button>
 
         <div style={{ padding: 10 }}></div>
 
