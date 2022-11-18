@@ -1,87 +1,86 @@
 pragma solidity ^0.8.17;
- 
-//import "hardhat/console.sol";
-import "./BaseBetting.sol";
- 
-contract Betting is BaseBetting {
-    
-    uint totalWager = 0;
-    uint numberOfWagers = 0;
-    uint winningNumber = 999;
+import "hardhat/console.sol";
+
+contract Betting {
+    address payable owner;
+    uint256 minWager = 1;
+    uint256 totalWager = 0;
+    uint256 numberOfWagers = 0;
+    uint256 constant MAX_NUMBER_OF_WAGERS = 2;
+    uint256 winningNumber = 999;
+    uint256 constant MAX_WINNING_NUMBER = 3;
     address payable[] playerAddresses;
-    mapping (address => bool) playerAddressesMapping;
+    mapping(address => bool) playerAddressesMapping;
+    struct Player {
+        uint256 amountWagered;
+        uint256 numberWagered;
+    }
     mapping(address => Player) playerDetails;
+    // the event to announce the winning number
+    event WinningNumber(uint256 number);
+    // the event to display the status of the game
+    event Status(uint256 players, uint256 maxPlayers);
 
     // the constructor for the contract
-    constructor (uint _minWager) BaseBetting(_minWager) {}
+    constructor(uint256 _minWager) public {
+        owner = payable(msg.sender);
+        // set the minimum amount wager amount allowed
+        // note that this number is in ether
+        if (_minWager > 0) minWager = _minWager;
+    }
 
-    function bet(uint number) public payable {
+    function bet(uint256 number) public payable {
+        // ensure that each player can play once
         // you check using the mapping for performance reasons
         require(playerAddressesMapping[msg.sender] == false);
-
         // check the range of numbers allowed
         require(number >= 1 && number <= MAX_WINNING_NUMBER);
-        
-        // note: that msg.value is in wei; need to convert to ether
-        require( (msg.value / (1 ether)) >= minWager);
-
+        // note that msg.value is in wei; need to convert to
+        // ether
+        require((msg.value / (1 ether)) >= minWager);
         // record the number and amount wagered by the player
         playerDetails[msg.sender].amountWagered = msg.value;
         playerDetails[msg.sender].numberWagered = number;
-
-        // add the player address to the array of addresses as well as mapping
+        // add the player address to the array of addresses as
+        // well as mapping
         playerAddresses.push(payable(msg.sender));
         playerAddressesMapping[msg.sender] = true;
         numberOfWagers++;
         totalWager += msg.value;
-
         if (numberOfWagers >= MAX_NUMBER_OF_WAGERS) {
             announceWinners();
         }
-
-        // call the event to inform the client about the status of the game
+        // call the event to inform the client about the
+        // status of the game
         emit Status(numberOfWagers, MAX_NUMBER_OF_WAGERS);
-     }
-
-    function announceWinners() private {
-        winningNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % MAX_WINNING_NUMBER + 1;
-
-        address payable[MAX_NUMBER_OF_WAGERS] memory winners;
-        uint winnerCount = 0;
-        uint totalWinningWager = 0;
-
-        // call the event to announce the winning number
-        emit WinningNumber(winningNumber);
-
-        // find out the winners
-        for (uint i=0; i < playerAddresses.length; i++) {
-            // get the address of each player
-            address payable playerAddress = playerAddresses[i];
-
-            // if the player betted number is the winning number
-            if (playerDetails[playerAddress].numberWagered == winningNumber) {
-                // save the player address into the winners array
-                winners[winnerCount] = playerAddress;
-                // sum up the total wagered amount for the winning numbers
-                totalWinningWager += playerDetails[playerAddress].amountWagered;
-                winnerCount++;
-            }
-        }
-
-        // make payments to each winning player
-        for (uint j = 0; j < winnerCount; j++) {
-            winners[j].transfer(
-            (playerDetails[winners[j]].amountWagered / totalWinningWager)
-            *
-            totalWager);
-        }
     }
 
-    function getWinningNumber() view public returns (uint) {
+    function announceWinners() private {
+        //winningNumber =
+        //uint(keccak256(abi.encodePacked(block.timestamp))) %
+        // MAX_WINNING_NUMBER + 1;
+        // hard code the winning number to see what happens
+        // when the contract is killed
+        winningNumber = 1;
+        // call the event to announce the winning number
+        emit WinningNumber(winningNumber);
+        address payable[MAX_NUMBER_OF_WAGERS] memory winners;
+        uint256 winnerCount = 0;
+        uint256 totalWinningWager = 0;
+        // find out the winners
+    }
+
+    function getWinningNumber() public view returns (uint256) {
         return winningNumber;
     }
 
-    function getStatus() view public returns (uint, uint) {
+    function kill() public {
+        if (msg.sender == owner) {
+            selfdestruct(owner);
+        }
+    }
+
+    function getStatus() public view returns (uint256, uint256) {
         return (numberOfWagers, MAX_NUMBER_OF_WAGERS);
     }
 }

@@ -3,7 +3,8 @@ import React, {useEffect, useState} from 'react'
 import { ethers } from 'ethers'
 import Betting from './artifacts/contracts/Betting.sol/Betting.json'
 
-const BETTING_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+const BETTING_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const ethPrivkey = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 function App() {
 
@@ -14,17 +15,22 @@ function App() {
     if (typeof window.ethereum !== "undefined") {
       //ethereum is usable get reference to the contract
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, provider);
+      const balance = await provider.getBalance("ethers.eth");
+      console.log("balance", ethers.utils.formatEther(balance));
+      const wallet = new ethers.Wallet(ethPrivkey, provider);
+      console.log(wallet);
+      const signer = wallet.provider.getSigner(wallet.address);
+      const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signer);
 
       //try to get the greeting in the contract
       try {
-          const status = await contract.getStatus();
-          console.log(status)
+          const bet = await contract.bet(10);
+          console.log(bet);
       } catch (e) {
           console.log("Err: ", e)
       }
     } else {
-      console.log('undefine')
+      console.log('window.ethereum is undefined');
     }
   }
 
