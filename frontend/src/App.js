@@ -11,6 +11,7 @@ function App() {
   const ethPrivkey = param.idWallet;
 
   const [contractBetting, setContractBetting] = useState();
+  const [signer, setSiger] = useState();
   const [infoPlayer, setInfoPlayer] = useState({ player: 0, maxPlayer: 0, numberWin: 0 });
 
   const [value, setValue] = useState({ betNumber: '', amount: '' })
@@ -20,14 +21,17 @@ function App() {
       //ethereum is usable get reference to the contract
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const wallet = new ethers.Wallet(ethPrivkey, provider);
-      const signer = wallet.provider.getSigner(wallet.address);
-      const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signer);
+      const signers = wallet.provider.getSigner(wallet.address);
+      setSiger(signers);
+      const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signers);
       contract.on("Status", (to, amount) => {
         console.log("Status", Number(to), Number(amount));
         setInfoPlayer({ player: Number(to), maxPlayer: Number(amount) })
       });
-      contract.on("WinningNumber", (amount) => {
+      contract.on("WinningNumber", async (amount) => {
         console.log("WinningNumber", Number(amount));
+        const total = await contract.functions.getTotalWager();
+        console.log("TotalWager", Number(total));
         setInfoPlayer({ ...infoPlayer, numberWin: Number(amount) });
       });
       const status = await contract.functions.getStatus();
@@ -45,7 +49,10 @@ function App() {
   const handleBet = async () => {
     //try to get the greeting in the contract
     try {
-      const bet = await contractBetting.functions.bet(1);
+      const bet = await contractBetting.functions.bet(Number(value.betNumber), {
+          from: signer.address,
+          value: ethers.utils.parseUnits(value.amount, "ether")
+        });
       setValue({ betNumber: '', amount: '' })
       // console.log(contractBetting, bet);
     } catch (e) {
@@ -82,7 +89,7 @@ function App() {
             Number to wager
           </div>
           <div style={{ padding: 5 }}></div>
-          <input className="input" onChange={(e) => changeValue({ betNumber: e })} />
+          <input className="input" onChange={(e) => changeValue({ betNumber: e.target.value })} />
         </div>
 
         <div style={{ padding: 10 }}></div>
@@ -92,7 +99,7 @@ function App() {
             Number of ethers to wagers
           </div>
           <div style={{ padding: 5 }}></div>
-          <input className="input" onChange={(e) => changeValue({ amount: e })} />
+          <input className="input" onChange={(e) => changeValue({ amount: e.target.value })} />
         </div>
 
         <div style={{ padding: 20 }}></div>
@@ -105,9 +112,11 @@ function App() {
 
         <div style={{ padding: 10 }}></div>
 
-        <div className="winning-number-div" >
-          Winning Number is : 1
-        </div>
+        {infoPlayer.numberWin && 
+          <div className="winning-number-div" >
+            Winning Number is : {infoPlayer.numberWin}
+          </div>
+        }
 
         <div style={{ padding: 8 }}></div>
 

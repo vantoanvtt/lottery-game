@@ -32,7 +32,7 @@ contract Betting {
     function bet(uint256 number) public payable {
         // ensure that each player can play once
         // you check using the mapping for performance reasons
-        require(playerAddressesMapping[msg.sender] == false);
+        // require(playerAddressesMapping[msg.sender] == false);
         // check the range of numbers allowed
         require(number >= 1 && number <= MAX_WINNING_NUMBER);
         // note that msg.value is in wei; need to convert to
@@ -63,11 +63,31 @@ contract Betting {
         // when the contract is killed
         winningNumber = 1;
         // call the event to announce the winning number
+        // find out the winners
+        // call the event to announce the winning number
         emit WinningNumber(winningNumber);
         address payable[MAX_NUMBER_OF_WAGERS] memory winners;
         uint256 winnerCount = 0;
         uint256 totalWinningWager = 0;
-        // find out the winners
+        for (uint256 i = 0; i < playerAddresses.length; i++) {
+            address payable playerAddress = playerAddresses[i];
+            if (playerDetails[playerAddress].numberWagered == winningNumber) {
+                winners[winnerCount] = playerAddress;
+                totalWinningWager += playerDetails[playerAddress].amountWagered;
+                winnerCount++;
+            }
+        }
+        for (uint256 j = 0; j < winnerCount; j++) {
+            winners[j].transfer(
+                (playerDetails[winners[j]].amountWagered / totalWinningWager) *
+                    totalWager
+            );
+        }
+        // if there is no winner, transfer all
+        // the remaining ethers back to owner
+        if (winnerCount == 0) {
+            owner.transfer(address(this).balance);
+        }
     }
 
     function getWinningNumber() public view returns (uint256) {
@@ -82,5 +102,9 @@ contract Betting {
 
     function getStatus() public view returns (uint256, uint256) {
         return (numberOfWagers, MAX_NUMBER_OF_WAGERS);
+    }
+
+    function getTotalWager() public view returns (uint256) {
+        return totalWager;
     }
 }
