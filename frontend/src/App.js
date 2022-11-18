@@ -2,12 +2,14 @@ import './App.css';
 import React, {useEffect, useState} from 'react'
 import { ethers } from 'ethers'
 import Betting from './artifacts/contracts/Betting.sol/Betting.json'
+import { useParams } from 'react-router-dom';
 
-const BETTING_ADDRESS = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6";
-const ethPrivkey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const BETTING_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 function App() {
-
+  const param = useParams();
+  const ethPrivkey = param.idWallet;
+  console.log(ethPrivkey);
   const [totalPeople, setTotalOfPeople] = useState(0);
   const [currentPeople, setCurrentPeople] = useState(0);
   const [contractBetting, setContractBetting] = useState();
@@ -19,7 +21,7 @@ function App() {
       const wallet = new ethers.Wallet(ethPrivkey, provider);
       const signer = wallet.provider.getSigner(wallet.address);
       const contract = new ethers.Contract(BETTING_ADDRESS, Betting.abi, signer);
-      contract.on("Status", (to, amount, from) => {
+      contract.on("Status", (to, amount) => {
           console.log("Status", Number(to), Number(amount));
       });
       contract.on("WinningNumber", (amount) => {
@@ -47,10 +49,23 @@ function App() {
     }
   }
 
+  const handleConnectMetaMask = async () => {
+    const acounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    console.log('acounts', acounts);
+  }
+
   return (
     <div className="App">
       <div className="flex-box-column-start">
         <div className="text-style" style={{ fontSize: 30 }}>Ethereum Betting</div>
+
+        <div style={{ padding: 10 }}></div>
+
+        <div className="flex-box-column-center">
+          <button className="bet-button" onClick={handleConnectMetaMask}>Connect Metamask</button>
+        </div>
 
         <div style={{ padding: 10 }}></div>
 
